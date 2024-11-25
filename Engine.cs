@@ -6,9 +6,9 @@ using System.Reflection;
 namespace Wafer;
 internal class Engine {
 
-	static readonly string defaultFile = Assembly.GetEntryAssembly( )?.GetName( ).Name + ".conf";
-	static readonly string defaultDirectory = Path.GetDirectoryName( Assembly.GetEntryAssembly( )?.Location ) ?? "";
-	static readonly string defaultPath = Path.Combine( defaultDirectory, defaultFile );
+	static readonly string defaultFile = Assembly.GetEntryAssembly()?.GetName().Name + ".conf";
+	static readonly string defaultDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? "";
+	static readonly string defaultPath = Path.Combine(defaultDirectory, defaultFile);
 	const string defaultScript = """
 sqrt:   0.5 **
 pi:     3.14159265358979323846
@@ -19,8 +19,8 @@ log:    ln swap ln /
 
 over:   swap dup rot swap
 
-2push:  push push
-2pop:   pop pop
+2push:  swap push push
+2pop:   pop pop swap
 
 2swap:  rot push rot pop
 2dup:   swap dup rot dup rot swap
@@ -43,19 +43,19 @@ over:   swap dup rot swap
 		public readonly string str;
 		public readonly ValueType type;
 
-		public Value( Number value ) {
+		public Value(Number value) {
 			num = value;
-			str = value.ToString( );
+			str = value.ToString();
 			type = ValueType.Number;
 		}
 
-		public Value( string value ) {
+		public Value(string value) {
 			num = value.Length;
 			str = value;
 			type = ValueType.String;
 		}
 
-		public override string? ToString( ) => str;
+		public override string? ToString() => str;
 	}
 
 	private readonly struct Word {
@@ -64,28 +64,28 @@ over:   swap dup rot swap
 		public readonly string? str;
 		public readonly WordType type;
 
-		public Word( string name, Action<Engine> definition ) {
+		public Word(string name, Action<Engine> definition) {
 			this.name = name;
 			action = definition;
 			type = WordType.Builtin;
 		}
 
-		public Word( string name, string definition ) {
+		public Word(string name, string definition) {
 			this.name = name;
 			str = definition;
 			type = WordType.Defined;
 		}
 
-		public bool Fire( Engine engine ) {
-			if ( action is not null ) {
+		public Error Fire(Engine engine) {
+			if (action is not null) {
 				try {
-					action( engine );
-					return true;
-				} catch ( Exception ) {
-					return false;
+					action(engine);
+					return Error.None;
+				} catch (Exception) {
+					return Error.StackFault;
 				}
 			} else {
-				return engine.Process( str ?? "", true );
+				return engine.Process(str ?? "", true);
 			}
 		}
 	}
@@ -96,233 +96,304 @@ over:   swap dup rot swap
 		public Dictionary<string, Word> Words;
 	}
 
+	public enum Error {
+		Unknown = -1,
+		None,
+		UnknownWord,
+		StackFault,
+		EndOfInput,
+		NoSuchFile,
+	}
+
 	private const int HistoryCapacity = 50;
-	private readonly Queue<State> History = new( );
+	private readonly Queue<State> History = new();
 
-	private Stack<Value> Stack => History.Peek( ).Stack;
-	private Stack<Value> Stash => History.Peek( ).Stash;
-	private Dictionary<string, Word> Words => History.Peek( ).Words;
+	private Stack<Value> Stack = new();
+	private Stack<Value> Stash = new();
+	private Dictionary<string, Word> Words = [];
 
-	private void AddWord( string name, Action<Engine> action ) => Words[name] = new Word( name, action );
-	private void AddWord( string name, string definition ) => Words[name] = new Word( name, definition );
+	private void AddWord(string name, Action<Engine> action) => Words[name] = new Word(name, action);
+	private void AddWord(string name, string definition) => Words[name] = new Word(name, definition);
 
-	private static void Print( ) => Console.WriteLine( );
-	private static void Print( object obj ) => Console.WriteLine( obj.ToString( ) );
+	private static void Print() => Console.WriteLine();
+	private static void Print(object obj) => Console.WriteLine(obj.ToString());
 
-	public void Push( Number value ) => Stack.Push( new Value( value ) );
-	public void Push( string value ) => Stack.Push( new Value( value ) );
-	public void Push( Value value ) => Stack.Push( value );
-	public void Push( bool value ) => Push( value ? 1 : 0 );
+	public void Push(Number value) => Stack.Push(new Value(value));
+	public void Push(string value) => Stack.Push(new Value(value));
+	public void Push(Value value) => Stack.Push(value);
+	public void Push(bool value) => Push(value ? 1 : 0);
 
-	public Number Pop( ) => Stack.Pop( ).num;
-	public string PopS( ) => Stack.Pop( ).str;
-	public Value PopV( ) => Stack.Pop( );
-	public bool PopB( ) => Stack.Pop( ).num != 0;
-	public int PopI( ) => (int)Stack.Pop( ).num;
+	public Number Pop() => Stack.Pop().num;
+	public string PopS() => Stack.Pop().str;
+	public Value PopV() => Stack.Pop();
+	public bool PopB() => Stack.Pop().num != 0;
+	public int PopI() => (int)Stack.Pop().num;
 
-	private void HistoryStep( ) {
+	private void HistoryStep() {
+		throw new NotImplementedException();
 		State next;
-		if ( History.Count == 0 ) {
-			next.Stack = new( );
-			next.Stash = new( );
+		if (History.Count == 0) {
+			next.Stack = new();
+			next.Stash = new();
 			next.Words = [];
-			DefaultWords( );
+			DefaultWords();
 		} else {
-			next.Stack = Stack.FastClone( );
-			next.Stash = Stash.FastClone( );
-			next.Words = new Dictionary<string, Word>( Words );
+			next.Stack = Stack.FastClone();
+			next.Stash = Stash.FastClone();
+			next.Words = new(Words);
 
 		}
-		History.Enqueue( next );
-		if ( History.Count > HistoryCapacity )
-			History.Dequeue( );
+		History.Enqueue(next);
+		if (History.Count > HistoryCapacity)
+			History.Dequeue();
 	}
 
-	public void HistoryUndo( ) {
+	public void HistoryUndo() {
+		throw new NotImplementedException();
 		State next;
-		if ( History.Count == 0 ) {
-			next.Stack = new( );
-			next.Stash = new( );
+		if (History.Count == 0) {
+			next.Stack = new();
+			next.Stash = new();
 			next.Words = [];
-			DefaultWords( );
+			DefaultWords();
 		}
-		History.Dequeue( );
+		History.Dequeue();
 	}
 
-	public void LoadDefaultScript( ) {
-		if ( !File.Exists( defaultPath ) ) File.WriteAllText( defaultPath, defaultScript );
-		LoadWordsFromFile( defaultPath );
+	public void LoadDefaultScript() {
+		if (!File.Exists(defaultPath)) File.WriteAllText(defaultPath, defaultScript);
+		LoadWordsFromFile(defaultPath);
 	}
 
-	public void LoadWordsFromFile( string path ) {
-		foreach ( string line in File.ReadLines( path ) ) Process( line, true );
+	public void LoadWordsFromFile(string path) {
+		foreach (string line in File.ReadLines(path)) SafeProcess(line, true);
 	}
 
-	public void DefaultWords( ) {
-		AddWord( "help", e => {
+	public Error LoadScript(string path) {
+		if (!File.Exists(path)) {
+			return Error.NoSuchFile;
+		}
+		string contents = File.ReadAllText(path);
+		SafeProcess(contents, true);
+		return Error.None;
+	}
+
+	public void DefaultWords() {
+		AddWord("help", e => {
 			var keys = Words.Keys;
-			var builtins = keys.Where( k => Words[k].type == WordType.Builtin ).ToList( );
-			Console.WriteLine( $"BUILTINS: {string.Join( ", ", builtins )}" );
-			Console.WriteLine( $"DEFINED:" );
-			var defines = keys.Where( k => Words[k].type == WordType.Defined ).ToList( );
+			var builtins = keys.Where(k => Words[k].type == WordType.Builtin).ToList();
+			Print($"BUILTINS: {string.Join(", ", builtins)}");
+			Print($"DEFINED:");
+			var defines = keys.Where(k => Words[k].type == WordType.Defined).ToList();
 			//defines.Sort( );
-			foreach ( string name in defines ) {
-				Console.WriteLine( $"\t{name}: {Words[name].str}" );
+			foreach (string name in defines) {
+				Print($"\t{name}: {Words[name].str}");
 			}
-		} );
-		AddWord( "exit", e => Environment.Exit( 0 ) );
-		AddWord( ".", e => Print( Pop( ) ) );
-		AddWord( "CR", e => Print( ) );
-		AddWord( "+", e => Push( Pop( ) + Pop( ) ) );
-		AddWord( "-", e => Push( -Pop( ) + Pop( ) ) );
-		AddWord( "*", e => Push( Pop( ) * Pop( ) ) );
-		AddWord( "/", e => {
-			var a = Pop( );
-			Push( Pop( ) / a );
-		} );
-		AddWord( "//", e => {
-			var a = Pop( );
-			Push( (int)( Pop( ) / a ) );
-		} );
-		AddWord( "%", e => {
-			var a = Pop( );
-			Push( Pop( ) % a );
-		} );
-		AddWord( "**", e => {
-			var a = Pop( );
-			Push( MathN.Pow( Pop( ), a ) );
-		} );
-		AddWord( "ln", e => Push( MathN.Log( Pop( ) ) ) );
-		AddWord( "log10", e => Push( MathN.Log10( Pop( ) ) ) );
-		AddWord( "log2", e => Push( MathN.Log2( Pop( ) ) ) );
-		AddWord( "floor", e => Push( MathN.Floor( Pop( ) ) ) );
-		AddWord( "ceil", e => Push( MathN.Ceiling( Pop( ) ) ) );
-		AddWord( "ceil", e => Push( MathN.Ceiling( Pop( ) ) ) );
+		});
+		AddWord("exit", e => Environment.Exit(0));
+		AddWord(".", e => Print(Pop()));
+		AddWord("cr", e => Print());
+		AddWord("+", e => Push(Pop() + Pop()));
+		AddWord("-", e => Push(-Pop() + Pop()));
+		AddWord("*", e => Push(Pop() * Pop()));
+		AddWord("/", e => {
+			var a = Pop();
+			Push(Pop() / a);
+		});
+		AddWord("//", e => {
+			var a = Pop();
+			Push((int)(Pop() / a));
+		});
+		AddWord("%", e => {
+			var a = Pop();
+			Push(Pop() % a);
+		});
+		AddWord("**", e => {
+			var a = Pop();
+			Push(MathN.Pow(Pop(), a));
+		});
+		AddWord("ln", e => Push(MathN.Log(Pop())));
+		AddWord("log10", e => Push(MathN.Log10(Pop())));
+		AddWord("log2", e => Push(MathN.Log2(Pop())));
+		AddWord("floor", e => Push(MathN.Floor(Pop())));
+		AddWord("ceil", e => Push(MathN.Ceiling(Pop())));
 
-		AddWord( "not", e => Push( !PopB( ) ) );
-		AddWord( "or", e => {
-			var a = PopB( );
-			var b = PopB( );
-			Push( a || b );
-		} );
-		AddWord( "and", e => {
-			var a = PopB( );
-			var b = PopB( );
-			Push( a && b );
-		} );
-		AddWord( "xor", e => Push( PopB( ) != PopB( ) ) );
-		AddWord( "~", e => Push( ~PopI( ) ) );
-		AddWord( "|", e => Push( PopI( ) | PopI( ) ) );
-		AddWord( "&", e => Push( PopI( ) & PopI( ) ) );
-		AddWord( "^", e => Push( PopI( ) ^ PopI( ) ) );
-		AddWord( "empty", e => Stack.Clear( ) );
-		AddWord( "count", e => Push( Stack.Count ) );
-		AddWord( "dup", e => Push( Stack.Peek( ).num ) );
-		AddWord( "drop", e => Pop( ) );
-		AddWord( "swap", e => {
-			var a = Pop( );
-			var b = Pop( );
-			Push( a );
-			Push( b );
-		} );
-		AddWord( "rot", e => {
-			var a = Pop( );
-			var b = Pop( );
-			var c = Pop( );
-			Push( b );
-			Push( a );
-			Push( c );
-		} );
-		AddWord( "sin", e => Push( MathN.Sin( Pop( ) ) ) );
-		AddWord( "cos", e => Push( MathN.Cos( Pop( ) ) ) );
-		AddWord( "tan", e => Push( MathN.Tan( Pop( ) ) ) );
-		AddWord( ">", e => Push( !( Pop( ) <= Pop( ) ) ) );
-		AddWord( ">=", e => Push( !( Pop( ) < Pop( ) ) ) );
-		AddWord( "==", e => Push( Pop( ) == Pop( ) ) );
-		AddWord( "!=", e => Push( Pop( ) != Pop( ) ) );
-		AddWord( "<", e => Push( Pop( ) >= Pop( ) ) );
-		AddWord( "<=", e => Push( Pop( ) > Pop( ) ) );
-		AddWord( "cls", e => Console.Clear( ) );
-		AddWord( "push", e => Stash.Push( Stack.Pop( ) ) );
-		AddWord( "pop", e => Stack.Push( Stash.Pop( ) ) );
-		AddWord( "reload", e => LoadDefaultScript( ) );
-		AddWord( "default", e => {
-			File.WriteAllText( defaultPath, defaultScript );
-			LoadDefaultScript( );
-		} );
-		AddWord( "conf", e => {
-			using Process fileopener = new( );
+		AddWord("not", e => Push(!PopB()));
+		AddWord("or", e => {
+			var a = PopB();
+			var b = PopB();
+			Push(a || b);
+		});
+		AddWord("and", e => {
+			var a = PopB();
+			var b = PopB();
+			Push(a && b);
+		});
+		AddWord("xor", e => Push(PopB() != PopB()));
+		AddWord("~", e => Push(~PopI()));
+		AddWord("|", e => Push(PopI() | PopI()));
+		AddWord("&", e => Push(PopI() & PopI()));
+		AddWord("^", e => Push(PopI() ^ PopI()));
+		AddWord("empty", e => Stack.Clear());
+		AddWord("count", e => Push(Stack.Count));
+		AddWord("dup", e => Push(Stack.Peek().num));
+		AddWord("drop", e => Pop());
+		AddWord("swap", e => {
+			var a = Pop();
+			var b = Pop();
+			Push(a);
+			Push(b);
+		});
+		AddWord("rot", e => {
+			var a = Pop();
+			var b = Pop();
+			var c = Pop();
+			Push(b);
+			Push(a);
+			Push(c);
+		});
+		AddWord("sin", e => Push(MathN.Sin(Pop())));
+		AddWord("cos", e => Push(MathN.Cos(Pop())));
+		AddWord("tan", e => Push(MathN.Tan(Pop())));
+		AddWord(">", e => Push(!(Pop() <= Pop())));
+		AddWord(">=", e => Push(!(Pop() < Pop())));
+		AddWord("==", e => Push(Pop() == Pop()));
+		AddWord("!=", e => Push(Pop() != Pop()));
+		AddWord("<", e => Push(Pop() >= Pop()));
+		AddWord("<=", e => Push(Pop() > Pop()));
+		AddWord("cls", e => Console.Clear());
+		AddWord("sum", e => {
+			Number sum = 0;
+			while (Stack.TryPop(out var value)) {
+				sum += value.num;
+			}
+			Push(sum);
+		});
+		AddWord("prod", e => {
+			Number prod = 1;
+			while (Stack.TryPop(out var value)) {
+				prod *= value.num;
+			}
+			Push(prod);
+		});
+		AddWord("push", e => Stash.Push(Stack.Pop()));
+		AddWord("pop", e => Stack.Push(Stash.Pop()));
+		AddWord("reload", e => LoadDefaultScript());
+		AddWord("default", e => {
+			File.WriteAllText(defaultPath, defaultScript);
+			LoadDefaultScript();
+		});
+		AddWord("conf", e => {
+			using Process fileopener = new();
 			fileopener.StartInfo.FileName = defaultPath;
 			fileopener.StartInfo.UseShellExecute = true;
-			fileopener.Start( );
-		} );
+			fileopener.Start();
+		});
 	}
 
-	public Engine( ) {
-		DefaultWords( );
-		HistoryStep( );
+	public Engine() {
+		DefaultWords();
+		// TODO: HistoryStep( );
 	}
 
-	public void PrintStack( ) {
-		if ( Stack.Count > 0 )
-			Console.WriteLine( string.Join( ' ', Stack.Reverse( ) ) );
+	public void PrintStack() {
+		if (Stack.Count > 0)
+			Print(string.Join(' ', Stack.Reverse()));
 	}
 
-	public bool SafeProcess( string input ) {
-		HistoryStep( );
-		if ( Process( input ) )
-			return true;
-		HistoryUndo( );
-		return false;
+	public Error SafeProcess(string input, bool subroutine = false) {
+		//TODO: HistoryStep( );
+		var stack = Stack.FastClone();
+		var stash = Stash.FastClone();
+		var words = new Dictionary<string, Word>(Words);
+		Error error = Process(input, subroutine);
+		if (error == Error.None)
+			return error;
+		//TODO: HistoryUndo( );
+		Stack = stack;
+		Stash = stash;
+		Words = words;
+		Print("Error: " + error);
+		PrintStack();
+		return error;
 	}
 
-	private bool Process( string input, bool subroutine = false ) {
-		if ( input == null ) {
-			PrintStack( );
-			return true;
+	private Error Process(string input, bool subroutine = false) {
+		if (input == null) {
+			PrintStack();
+			return Error.None;
 		}
 
 		// Format input and split into array
-		var wordstr = input.Trim( ).ToLower( );
-		var cmtidx = wordstr.IndexOf( '#' );
-		if ( cmtidx != -1 )
+		var wordstr = input.Trim().ToLower();
+		var cmtidx = wordstr.IndexOf('#');
+		if (cmtidx != -1)
 			wordstr = wordstr[..cmtidx];
-		var words = wordstr.Split( );
+		var words = wordstr.Split();
 
-		for ( int i = 0; i < words.Length; i++ ) {
+		for (int i = 0; i < words.Length; i++) {
 			string here = words[i];
-			if ( here.Length == 0 ) continue;
+			if (here.Length == 0) continue;
 
 			// Define word
-			if ( i == 0 && here[^1] == ':' ) {
+			if (i == 0 && here[^1] == ':') {
 				string name = here[..^1];
-				string definition = string.Join( ' ', words.Skip( 1 ) );
-				AddWord( name, definition );
+				string definition = string.Join(' ', words.Skip(1));
+				AddWord(name, definition);
+				break;
+			}
+
+			// Load
+			if (i == 0 && here == "load") {
+				string path = string.Join(' ', words.Skip(1));
+				Error err = LoadScript(path);
+				if (err != Error.None) return err;
 				break;
 			}
 
 			// If word, fire and continue
-			if ( Words.TryGetValue( here, out Word word ) ) {
-				return word.Fire( this );
+			if (Words.TryGetValue(here, out Word word)) {
+				Error error = word.Fire(this);
+				if (error != Error.None) return error;
+				continue;
 			}
 
-			if ( here[0] == '*' ) {
-				
+			// Control flow
+			if (here == "{") {
+				int start = i + 1;
+				int end = i;
+				int balance = 1;
+				while (balance > 0) {
+					if (++end >= words.Length) return Error.EndOfInput;
+					if (words[end] == "{") balance++;
+					if (words[end] == "}") balance--;
+				}
+				string def = string.Join(' ', words[start..end]);
+				while (Stack.TryPop(out var cond) && cond.num != 0) {
+					Push(cond);
+					Error err = Process(def ?? "", true);
+					if (err != Error.None) return err;
+				}
+				i = end + 1;
+				continue;
 			}
+
+			//if ( here[0] == '*' ) {
+
+			//}
 
 			// If number, push to stack and continue
-			if ( Number.TryParse( here, out Number result ) ) {
-				Stack.Push( new Value( result ) );
+			if (Number.TryParse(here, out Number result)) {
+				Stack.Push(new Value(result));
 				continue;
 			}
 
 			// We don't recognize this word
-			Console.WriteLine( "Unknown word: " + here );
-			return false;
+			return Error.UnknownWord;
 
 		}
-		if ( !subroutine ) PrintStack( );
-		return true;
+		if (!subroutine) PrintStack();
+		return Error.None;
 	}
 
 }
