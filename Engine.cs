@@ -90,12 +90,6 @@ over:   swap dup rot swap
 		}
 	}
 
-	struct State {
-		public Stack<Value> Stack;
-		public Stack<Value> Stash;
-		public Dictionary<string, Word> Words;
-	}
-
 	public enum Error {
 		Unknown = -1,
 		None,
