@@ -105,9 +105,6 @@ over:   swap dup rot swap
 		NoSuchFile,
 	}
 
-	private const int HistoryCapacity = 50;
-	private readonly Queue<State> History = new();
-
 	private Stack<Value> Stack = new();
 	private Stack<Value> Stash = new();
 	private Dictionary<string, Word> Words = [];
@@ -128,37 +125,6 @@ over:   swap dup rot swap
 	public Value PopV() => Stack.Pop();
 	public bool PopB() => Stack.Pop().num != 0;
 	public int PopI() => (int)Stack.Pop().num;
-
-	private void HistoryStep() {
-		throw new NotImplementedException();
-		State next;
-		if (History.Count == 0) {
-			next.Stack = new();
-			next.Stash = new();
-			next.Words = [];
-			DefaultWords();
-		} else {
-			next.Stack = Stack.FastClone();
-			next.Stash = Stash.FastClone();
-			next.Words = new(Words);
-
-		}
-		History.Enqueue(next);
-		if (History.Count > HistoryCapacity)
-			History.Dequeue();
-	}
-
-	public void HistoryUndo() {
-		throw new NotImplementedException();
-		State next;
-		if (History.Count == 0) {
-			next.Stack = new();
-			next.Stash = new();
-			next.Words = [];
-			DefaultWords();
-		}
-		History.Dequeue();
-	}
 
 	public void LoadDefaultScript() {
 		if (!File.Exists(defaultPath)) File.WriteAllText(defaultPath, defaultScript);
@@ -293,7 +259,6 @@ over:   swap dup rot swap
 
 	public Engine() {
 		DefaultWords();
-		// TODO: HistoryStep( );
 	}
 
 	public void PrintStack() {
@@ -302,14 +267,12 @@ over:   swap dup rot swap
 	}
 
 	public Error SafeProcess(string input, bool subroutine = false) {
-		//TODO: HistoryStep( );
 		var stack = Stack.FastClone();
 		var stash = Stash.FastClone();
 		var words = new Dictionary<string, Word>(Words);
 		Error error = Process(input, subroutine);
 		if (error == Error.None)
 			return error;
-		//TODO: HistoryUndo( );
 		Stack = stack;
 		Stash = stash;
 		Words = words;
