@@ -1,6 +1,6 @@
-# Wafer
+# WaferCalc
 
-**Wafer** is a scriptable stack-based calculator for the terminal. It supports custom scripting, user-defined commands, and a variety of mathematical operations. Wafer is designed to be lightweight, extensible, and powerful for quick calculations or complex scripts.
+**WaferCalc** (previously Wafer) is a scriptable stack-based calculator for the terminal. It supports custom scripting, user-defined commands, and a variety of mathematical operations. WaferCalc is designed to be lightweight, extensible, and powerful for quick calculations or complex scripts.
 
 ## Features
 
@@ -8,23 +8,23 @@
 - **Scriptable**: Define custom commands and scripts to extend functionality.
 - **Built-in Math**: Includes a wide range of mathematical functions like trigonometry, logarithms, and power operations.
 - **Custom Configuration**: Load and save default scripts for personalized setups.
-- **Interactive REPL**: Use Wafer in an interactive terminal session.
+- **Interactive REPL**: Use WaferCalc in an interactive terminal session.
 
 ## Installation
 
 You can clone the repository and build using the dotnet CLI
 ```bash
-git clone https://github.com/zeaga/Wafer.git
-cd Wafer
+git clone https://github.com/zeaga/WaferCalc.git
+cd WaferCalc
 dotnet build
 ```
 
 ## Usage
 
 ### Interactive Mode
-Run Wafer without arguments to enter an interactive REPL mode:
+Run WaferCalc without arguments to enter an interactive REPL mode:
 ```bash
-Wafer
+WaferCalc
 ```
 After that you can type commands and see results in real time:
 ```text
@@ -35,11 +35,11 @@ After that you can type commands and see results in real time:
 ### Script Mode
 Pass commands as arguments:
 ```bash
-Wafer 3 4 +
+WaferCalc 3 4 +
 ```
 
 ### Default Configuration
-Wafer automatically loads a default script (`Wafer.conf`) located in the executable's directory. Modify this file to customize your environment.
+WaferCalc automatically loads a default script (`Wafer.conf`) located in the executable's directory. Modify this file to customize your environment.
 
 ## Core Commands
 
@@ -61,7 +61,7 @@ square: dup *
 
 ## Development
 
-Wafer is written in C# and leverages the .NET runtime. Contributions and suggestions are welcome!
+WaferCalc is written in C# and leverages the .NET runtime. Contributions and suggestions are welcome!
 
 ### Folder Structure
 
